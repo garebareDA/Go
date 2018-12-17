@@ -11,12 +11,12 @@ var localAddr = "0.0.0.0:25565"
 var remoteAddr = "192.168.1.201:25565"
 
 func proxyConn(conn *net.TCPConn) {
-	rAddr, err := net.ResolveTCPAddr("tcp", remoteAddr)
+	rAddr, err := net.ResolveTCPAddr("tcp4", remoteAddr)
 	if err != nil {
 		panic(err)
 	}
 
-	rConn, err := net.DialTCP("tcp", nil, rAddr)
+	rConn, err := net.DialTCP("tcp4", nil, rAddr)
 	if err != nil {
 		panic(err)
 	}
