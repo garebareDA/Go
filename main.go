@@ -7,6 +7,7 @@ import(
 	"bufio"
 	"time"
 	"sync"
+	"strings"
 	"github.com/google/gopacket/pcap"
 	"github.com/google/gopacket"
 )
@@ -14,15 +15,15 @@ import(
 func main() {
 	var once sync.Once
 	once.Do(func(){dviceName()})
+	fmt.Println("キャプチャーするデバイスとポートを入力してください")
 
 	//標準入力の受け取り
-	fmt.Println("キャプチャーするデバイスを入力してください")
 	stadin := bufio.NewScanner(os.Stdin)
 	stadin.Scan()
-	text := stadin.Text()
+	name := strings.Fields(stadin.Text())
 
-	//受け取ったネットワークデバイス名でキャプチャ開始
-	capture(text)
+	//キャプチャ開始
+	capture(name[0], name[1])
 }
 
 //ネットワークデバイスの名前を取得する関数
@@ -41,8 +42,9 @@ func dviceName(){
 }
 
 //パケットをキャプチャしてくれる関数
-func capture(name string){
+func capture(name string, port string){
 	var (
+
 		//ネットワークデバイス名は環境による
     divice_name  string = name
     snapshot_len int32  = 1024
@@ -60,18 +62,18 @@ func capture(name string){
 	defer handle.Close()
 
 	//tcpポートのフィルター
-	var filter string = "tcp and port 25565"
+	var filter string = "tcp and port " + port
+	fmt.Print(filter)
 	err = handle.SetBPFFilter(filter)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Only capturing TCP port 25565 packets.")
+	fmt.Println("Only capturing TCP port " + port + " packets.")
 
 	//パケットソースの処理
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 	for packet := range packetSource.Packets() {
-			fmt.Println(packet)
+		fmt.Println(packet)
 	}
-
 }
