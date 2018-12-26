@@ -13,6 +13,7 @@ import(
 )
 
 func main() {
+	//ネットワークデバイスを一回だけ表示させる
 	var once sync.Once
 	once.Do(func(){dviceName()})
 	fmt.Println("キャプチャーするデバイスとポートを入力してください")
@@ -30,21 +31,20 @@ func main() {
 func dviceName(){
 	devices, err := pcap.FindAllDevs()
 	if err != nil {
-			log.Fatal(err)
+		log.Fatal(err)
 	}
 
 	fmt.Println("Devices found:")
 	//ネットワークデバイスの名前を取得
 	for _, device := range devices {
-			fmt.Printf("%s\n", device.Name)
+		fmt.Printf("%s\n", device.Name)
 	}
-
 }
 
 //パケットをキャプチャしてくれる関数
 func capture(name string, port string){
-	var (
 
+	var (
 		//ネットワークデバイス名は環境による
     divice_name  string = name
     snapshot_len int32  = 1024
@@ -52,7 +52,7 @@ func capture(name string, port string){
     err          error
     timeout      time.Duration = 30 * time.Second
     handle       *pcap.Handle
-)
+	)
 
 	handle, err = pcap.OpenLive(divice_name, snapshot_len, promiscuous, timeout)
 	if err != nil {
