@@ -1,108 +1,32 @@
 package main
 
 import (
-	"encoding/hex"
 	"fmt"
 	"log"
-	"net"
+	"os"
+
+	"golang.org/x/net/proxy"
 )
 
-var localAddr = "0.0.0.0:25565"
-var remoteAddr = "192.168.1.201:25565"
-
-func proxyConn(conn *net.TCPConn) {
-	rAddr, err := net.ResolveTCPAddr("tcp4", remoteAddr)
-	if err != nil {
-		panic(err)
-	}
-
-	rConn, err := net.DialTCP("tcp4", nil, rAddr)
-	if err != nil {
-		panic(err)
-	}
-	defer rConn.Close()
-
-	for {
-		data := make([]byte, 256)
-		n, err := conn.Read(data)
-		if err != nil {
-			panic(err)
-		}
-		if _, err := rConn.Write(data[:n]); err != nil {
-			panic(err)
-		} else {
-			log.Printf("sent:\n%v", hex.Dump(data[:n]))
-		}
-
-		rData := make([]byte, 256)
-		rn, rerr := rConn.Read(rData)
-		if rerr != nil {
-			panic(err)
-		}
-		if _, err := conn.Write(rData[:rn]); err != nil {
-			panic(err)
-		} else {
-			log.Printf("received:\n%v", hex.Dump(rData[:rn]))
-		}
-	}
-
-	// if _, err := rConn.Write(buf.Bytes()); err != nil {
-	// 	panic(err)
-	// }
-	// log.Printf("sent:\n%v", hex.Dump(buf.Bytes()))
-
-	// for {
-	// 	data := make([]byte, 1024)
-	// 	n, err := rConn.Read(data)
-	// 	if err != nil {
-	// 		if err != io.EOF {
-	// 			panic(err)
-	// 		} else {
-	// 			log.Printf("received err: %v", err)
-	// 		}
-	// 	}
-	// 	log.Printf("received:\n%v", hex.Dump(data[:n]))
-	// }
-}
-
-func handleConn(in <-chan *net.TCPConn, out chan<- *net.TCPConn) {
-	for conn := range in {
-		proxyConn(conn)
-		out <- conn
-	}
-}
-
-func closeConn(in <-chan *net.TCPConn) {
-	for conn := range in {
-		conn.Close()
-	}
-}
+var (
+	proxy_addr  = "0.0.0.0:25565"
+	remote_addr = "192.168.1.201:25565"
+)
 
 func main() {
-	fmt.Printf("Listening: %v\nProxying: %v\n\n", localAddr, remoteAddr)
-
-	addr, err := net.ResolveTCPAddr("tcp", localAddr)
+	dialer, err := proxy.SOCKS5("tcp", proxy_addr, nil, proxy.Direct)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, "proxy connection error:", err)
+		os.Exit(1)
 	}
-
-	listener, err := net.ListenTCP("tcp", addr)
+	conn, err := dialer.Dial("tcp", remote_addr)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, "remote connection error:", err)
+		os.Exit(1)
 	}
+	defer conn.Close()
 
-	pending, complete := make(chan *net.TCPConn), make(chan *net.TCPConn)
+	log.Printf("received:\n%v", conn)
 
-	for i := 0; i < 5; i++ {
-		go handleConn(pending, complete)
-	}
-	go closeConn(complete)
-
-	for {
-		conn, err := listener.AcceptTCP()
-		if err != nil {
-			panic(err)
-		}
-		pending <- conn
-	}
+	// communicate with remote addr here
 }
